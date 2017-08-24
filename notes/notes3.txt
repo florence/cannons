@@ -1,0 +1,46 @@
+Turn order: small1 small2 big1(then move exactly 3) big2(then move exactly 3)
+
+changes to health: 3 front, 4 middle, 4 back. loosing front just looses guns.
+                   loosing front costs momentum and acceleration
+
+big: turret: move up to 90 or shoot, nothing
+     middle segment: rotate 45 around middle or change velocity, or nothing
+     for big shit, acceleration adds two vectors, normalizes
+
+     big turn order:
+       determine what movement and gun orders
+
+       do movement (turn, then handle momentum)
+       if gun as fire order, it fires if it can at any point(while active, i.e. not while ships go)
+       then turn guns
+
+small: Any 2 movement, or 1 movement and 1 attack. (move up 3, turn up to 45, shoot, nothing)
+
+Every segment has 3 health, loose 1, loose entire ship
+
+collisions betwen fighter and any are "passed through" no damage
+
+collisions = 1 damage for capitals, loss of momentum if its towars the collision
+
+
+destroy: keep movement, ship dead but stay on field
+
+turn order on destroy: skip
+
+collision w/ debree always destroys it, take 1 damage
+
+
+
+next time:
+   shooting range needs to be longer than movement range. Maybeships have longer range when not in motion.
+   rethink frigets moving through capital ships
+
+
+maybe later:
+change how turn order changes on destroyed ship
+
+problem: frigitates can't circle strafe.
+
+2 frigates, less health
+
+when we can test: maybe every ship declared, then every ship moves

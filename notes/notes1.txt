@@ -1,0 +1,20 @@
+Turn order: big1(then move exactly 3) big2(then move exactly 3) small1 small2
+
+big: turret: move up to 90 or shoot, nothing
+     middle segment: rotate 45 around middle or change velocity, or nothing
+     for big shit, acceleration adds two vectors, normalizes
+
+small: pick 2 exclusive (move up 3, turn up to 45, shoot, nothing)
+
+Every segment has 3 health, loose 1, loose entire ship
+
+collisions = 1 damage
+
+destroy: keep movement, ship dead but stay on field
+
+turn order on destroy: skip
+
+
+
+ideas: next round remove exclusive on fighter
+       next round guns shoot while moving
