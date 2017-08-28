@@ -1,0 +1,86 @@
+extern crate piston_window;
+extern crate graphics;
+extern crate float;
+extern crate piston;
+extern crate vecmath;
+#[allow(dead_code)]
+
+mod components;
+mod universe;
+mod collisions;
+
+use components::*;
+use universe::*;
+
+use piston_window::*;
+use vecmath::*;
+
+struct Gun {
+    color: [f32; 4],
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+}
+struct Bullet {
+    color: [f32; 4],
+    pos: Vector2<f64>,
+    dir: Vector2<f64>,
+}
+
+impl Component for Bullet {
+    fn tick(&mut self, args: &UpdateArgs, _: &mut World) {
+        self.pos = vec2_add(self.pos, self.dir);
+    }
+    fn draw(&mut self, c: Context, g: &mut G2d) {
+        rectangle(
+            self.color, // red
+            [self.pos[0], self.pos[1], 2.0, 2.0],
+            c.transform,
+            g,
+        );
+    }
+}
+
+impl Component for Gun {
+    fn click(&mut self, x: f64, y: f64, w: &mut World) {
+        println!("click!");
+            println!("{},{}",x - self.x, y - self.y);
+        w.spawn(Box::new(Bullet {
+            color: self.color,
+            pos: [self.x, self.y],
+            dir: vec2_normalized([x - self.x, y - self.y]),
+        }));
+    }
+    fn draw(&mut self, c: Context, g: &mut G2d) {
+        rectangle(
+            self.color, // red
+            [self.x, self.y, self.w, self.h],
+            c.transform,
+            g,
+        );
+    }
+}
+
+fn main() {
+    let mut window: PistonWindow = WindowSettings::new("Hello Piston!", [640, 480])
+        .exit_on_esc(true)
+        .build()
+        .unwrap();
+    let mut u = Universe::new();
+    u.add(Box::new(Gun {
+        color: [1.0, 0.0, 0.0, 1.0],
+        x: 0.0,
+        y: 0.0,
+        w: 100.0,
+        h: 100.0,
+    }));
+    while let Some(event) = window.next() {
+        u = u.handle_event(event, &mut window);
+    }
+}
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {}
+}
