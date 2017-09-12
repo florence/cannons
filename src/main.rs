@@ -22,7 +22,8 @@ fn main() {
         .build()
         .unwrap();
     let mut u = Universe::new();
-    u.add(Ship::new());
+    let ship = Ship::new(&mut u);
+    u.add(ship);
     while let Some(event) = window.next() {
         u = u.handle_event(event, &mut window);
     }

@@ -9,8 +9,8 @@ pub struct Bullet {
 }
 
 impl Bullet {
-    pub fn new(color: [f32; 4], pos: Vector2<f64>, dir: Vector2<f64>) -> Bullet {
-        Bullet {color,pos,dir}
+    pub fn new<T: GameObjectFactory>(fact: &mut T,color: [f32; 4], pos: Vector2<f64>, dir: Vector2<f64>) -> GameObject {
+        fact.new_gameobject().add(Box::new(Bullet {color,pos,dir}))
     }
 }
 

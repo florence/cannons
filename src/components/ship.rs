@@ -3,9 +3,9 @@ use vecmath::*;
 use piston_window::*;
 use super::bullet::*;
 use super::ui::*;
-use float::Radians;
 use math::*;
-use graphics::*;
+use graphics::math::*;
+use piston_window::Button::*;
 use common::*;
 
 pub struct Ship {
@@ -22,9 +22,18 @@ struct Gun {
     size: f64,
 }
 impl Component for Gun {
+    fn bounding_box(&self) -> BoundingBox {
+        [0.0, 0.0, self.size, self.size]
+    }
     fn drag(&mut self, x: f64, y: f64, _: &mut World) {
-        let v = vec2_sub([self.size, self.size], [x, y]);
-        self.dir.set(vec2_angle(v));
+        let v = vec2_sub(
+            [self.size, self.size],
+            [x + (self.size / 2.0), y + (self.size / 2.0)],
+        );
+        let a = vec2_angle(v);
+        if !a.is_nan() {
+            self.dir.set(a);
+        }
     }
     fn draw(&mut self, ctx: Context, g: &mut G2d) {
         let bounds = [0.0, 0.0, self.size, self.size];
@@ -39,23 +48,26 @@ impl Component for Gun {
 }
 
 impl Ship {
-    pub fn new() -> Box<Component> {
+    pub fn new<T: GameObjectFactory>(fact: &mut T) -> GameObject {
         let orient = shared(0.0);
-        let gun = Gun {
-            dir: orient.clone(),
-            size: 50.0,
-        };
-        let uigun = Box::new(UI::new(gun, 0.0, 0.0));
+        let uigun = Box::new(UI::new(
+            Gun {
+                dir: orient.clone(),
+                size: 100.0,
+            },
+            0.0,
+            0.0,
+        ));
         let ship = Box::new(Ship {
             color: [1.0, 0.0, 0.0, 1.0],
-            pos: [0.0; 2],
+            pos: [300.0; 2],
             dir: [1.0; 2],
             w: 10.0,
             h: 10.0,
             orientation: orient.clone(),
         });
         // TODO get ID's working
-        Box::new(GameObject::new(1).add(uigun).add(ship))
+        fact.new_gameobject().add(uigun).add(ship)
     }
 }
 impl Component for Ship {
@@ -67,18 +79,44 @@ impl Component for Ship {
         self.pos[0] = f64::max(f64::min(self.pos[0], 640.0 - self.w), 0.0);
         self.pos[1] = f64::max(f64::min(self.pos[1], 480.0 - self.h), 0.0);
     }
-    fn click(&mut self, x: f64, y: f64, w: &mut World) {
-        w.spawn(Box::new(Bullet::new(
-            self.color,
-            self.pos,
-            vec2_scale(vec2_normalized(vec2_sub([x, y], self.pos)), 2.0),
-        )));
+    fn click(&mut self, x: f64, y: f64, w: &mut World) {}
+    fn release(&mut self, b: &Button, w: &mut World) {
+        match b {
+            &Keyboard(k) => {
+                match k {
+                    Space => {
+                        let bullet = Bullet::new(
+                            w,
+                            self.color,
+                            self.pos,
+                            vec2_scale(
+                                [self.orientation.get().sin(), -self.orientation.get().cos()],
+                                2.0,
+                            ),
+                        );
+                        w.spawn(bullet);
+
+                    }
+                    _ => (),
+                }
+            }
+            _ => (),
+        }
     }
-    fn draw(&mut self, c: Context, g: &mut G2d) {
+    fn draw(&mut self, ctx: Context, g: &mut G2d) {
         rectangle(
-            self.color, // red
+            self.color,
             [self.pos[0], self.pos[1], self.w, self.h],
-            c.transform,
+            ctx.transform,
+            g,
+        );
+        rectangle(
+            [0.0, 1.0, 0.0, 1.0],
+            [0.0, 0.0, (self.w / 4.0), -(self.h)],
+            ctx.append_transform(translate(
+                [self.pos[0] + (self.w / 2.0), self.pos[1] + (self.h / 2.0)],
+            )).append_transform(rotate_radians(self.orientation.get()))
+                .transform,
             g,
         );
     }

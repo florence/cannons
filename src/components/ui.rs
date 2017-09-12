@@ -3,6 +3,7 @@ use components::*;
 use piston_window::*;
 use vecmath::*;
 use collisions::*;
+use graphics::math::*;
 
 pub struct UI<T: Component> {
     obj: T,
@@ -25,7 +26,7 @@ impl<T: Component> Component for UI<T> {
     }
     fn draw(&mut self, c: Context, g: &mut G2d) {
         self.obj.draw(
-            c.append_transform([[1.0, 0.0, self.bounds[0]], [0.0, 1.0, self.bounds[1]]]),
+            c.append_transform(translate([self.bounds[0],self.bounds[1]])),
             g,
         )
     }

@@ -6,10 +6,11 @@ use piston_window::Input::*;
 use piston_window::Button::*;
 
 pub struct Universe {
-    components: LinkedList<Box<Component>>,
+    components: LinkedList<GameObject>,
     mouse_down: bool,
     mouse_x: f64,
     mouse_y: f64,
+    id_counter: UUID,
 }
 impl Universe {
     pub fn new() -> Universe {
@@ -18,9 +19,10 @@ impl Universe {
             mouse_down: false,
             mouse_x: 0.0,
             mouse_y: 0.0,
+            id_counter: 0,
         }
     }
-    pub fn add(&mut self, b: Box<Component>) {
+    pub fn add(&mut self, b: GameObject) {
         self.components.push_front(b);
     }
     pub fn handle_event(self, i: Input, window: &mut PistonWindow) -> Self {
@@ -90,31 +92,44 @@ impl Universe {
     }
     fn each<F>(self, mut f: F) -> Self
     where
-        F: FnMut(&mut Component, &mut World) -> (),
+        F: FnMut(&mut GameObject, &mut World) -> (),
     {
         let Universe {
             components,
             mouse_down,
             mouse_x,
             mouse_y,
+            id_counter,
         } = self;
 
-        let (mut w, mut oc) = World::new(components);
+        let (mut w, mut oc) = World::new(components,id_counter);
         loop {
             match oc {
                 Some(mut c) => {
-                    f(&mut *c, &mut w);
+                    f(&mut c, &mut w);
                     oc = w.rotate(c);
                 }
                 None => break,
             }
         }
-        let c = w.complete();
+        let (c, ids) = w.complete();
         Universe {
             components: c,
             mouse_down: mouse_down,
             mouse_x: mouse_x,
             mouse_y: mouse_y,
+            id_counter: ids,
+        }
+    }
+}
+
+impl GameObjectFactory for Universe {
+    fn new_gameobject(&mut self) -> GameObject {
+        let id = self.id_counter;
+        self.id_counter += 1;
+        GameObject {
+            components: LinkedList::new(),
+            id,
         }
     }
 }

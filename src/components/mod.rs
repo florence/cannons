@@ -12,72 +12,85 @@ use std::any::Any;
 
 use collisions::*;
 
-type UUID = u32;
+pub type UUID = u32;
 
 pub struct World {
-    prev: LinkedList<Box<Component>>,
-    rest: LinkedList<Box<Component>>,
-    spawned: LinkedList<Box<Component>>,
+    prev: LinkedList<GameObject>,
+    rest: LinkedList<GameObject>,
+    spawned: LinkedList<GameObject>,
     to_destroy: HashSet<UUID>,
+    id_counter: UUID,
+}
+
+pub trait GameObjectFactory {
+    fn new_gameobject(&mut self) -> GameObject;
+}
+impl GameObjectFactory for World {
+    fn new_gameobject(&mut self) -> GameObject {
+        let id = self.id_counter;
+        self.id_counter += 1;
+        GameObject {
+            components: LinkedList::new(),
+            id,
+        }
+    }
 }
 
 impl World {
-    pub fn new(mut components: LinkedList<Box<Component>>) -> (World, Option<Box<Component>>) {
+    pub fn new(mut components: LinkedList<GameObject>, id_counter: UUID) -> (World, Option<GameObject>) {
         let r = components.pop_back();
         let w = World {
             prev: components,
             rest: LinkedList::new(),
             spawned: LinkedList::new(),
             to_destroy: HashSet::new(),
+            id_counter: id_counter,
         };
         (w, r)
     }
-    pub fn rotate(&mut self, c: Box<Component>) -> Option<Box<Component>> {
+
+    pub fn rotate(&mut self, c: GameObject) -> Option<GameObject> {
         self.rest.push_front(c);
         self.prev.pop_back()
     }
-    pub fn complete(self) -> LinkedList<Box<Component>> {
+    pub fn complete(self) -> (LinkedList<GameObject>,UUID) {
         match self {
             World {
                 prev: _,
                 rest,
                 spawned,
                 to_destroy: destroy,
+                id_counter,
             } => {
+                let obj = 
                 rest.into_iter()
-                    .filter(|c| match c.identify() {
-                        Some(id) => !destroy.contains(&id),
-                        None => true,
-                    })
+                    .filter(|c| !destroy.contains(&c.id))
                     .chain(spawned.into_iter())
-                    .collect::<LinkedList<_>>()
+                    .collect::<LinkedList<_>>();
+                    (obj , id_counter)
             }
         }
     }
 }
 
 impl World {
-    pub fn spawn(&mut self, comp: Box<Component>) -> () {
+    pub fn spawn(&mut self, comp: GameObject) -> () {
         self.spawned.push_front(comp);
     }
-    pub fn destroy(&mut self, comp: Box<&Component>) {
-        if let Some(id) = comp.identify() {
-            self.to_destroy.insert(id);
-        }
+    pub fn destroy(&mut self, comp: &GameObject) {
+            self.to_destroy.insert(comp.id);
     }
-    pub fn collisions(&self, bb: BoundingBox) -> LinkedList<&Component> {
+    pub fn collisions(&self, bb: BoundingBox) -> LinkedList<&GameObject> {
         self.prev
             .iter()
             .chain(self.rest.iter())
             .filter(|c| collides_box(c.bounding_box(), bb))
-            .map(|c| &**c)
             .collect::<LinkedList<_>>()
     }
 }
 
-
-pub trait Component: Any {
-    fn draw(&mut self, Context, &mut G2d) {}
+pub trait Component: 'static {
+    fn draw(&mut self, c: Context, g: &mut G2d) {}
     fn tick(&mut self, &UpdateArgs, &mut World) {}
     fn press(&mut self, &Button, &mut World) {}
     fn release(&mut self, &Button, &mut World) {}
@@ -92,28 +105,31 @@ pub trait Component: Any {
     fn collidable(&self) -> bool {
         false
     }
-    fn identify(&self) -> Option<UUID> {
-        None
-    }
 }
 
 // These just don't work unless all components are
 // completely independent
 pub struct GameObject {
-    components: LinkedList<Box<Component>>,
-    id: UUID,
+    pub components: LinkedList<Box<Component + 'static>>,
+    pub id: UUID,
 }
 
 impl GameObject {
-    fn new(id: UUID) -> GameObject {
-        GameObject {
-            components: LinkedList::new(),
-            id,
-        }
-    }
-    fn add(mut self, comp: Box<Component>) -> GameObject {
+
+    fn add(mut self, comp: Box<Component + 'static>) -> GameObject {
         self.components.push_front(comp);
         self
+    }
+    fn get<'a, T: Component + 'static>(&'a self) -> Option<&'a T> {
+        for x in self.components.iter() {
+            if let Some(a) = (x as &Any).downcast_ref::<T>() {
+                return Some(a);
+            }
+        }
+        return None;
+    }
+    fn identify(&self) -> UUID {
+        self.id
     }
 }
 
@@ -173,9 +189,5 @@ impl Component for GameObject {
             }
         }
         return false;
-    }
-
-    fn identify(&self) -> Option<UUID> {
-        Some(self.id)
     }
 }
