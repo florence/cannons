@@ -37,7 +37,10 @@ impl GameObjectFactory for World {
 }
 
 impl World {
-    pub fn new(mut components: LinkedList<GameObject>, id_counter: UUID) -> (World, Option<GameObject>) {
+    pub fn new(
+        mut components: LinkedList<GameObject>,
+        id_counter: UUID,
+    ) -> (World, Option<GameObject>) {
         let r = components.pop_back();
         let w = World {
             prev: components,
@@ -53,7 +56,7 @@ impl World {
         self.rest.push_front(c);
         self.prev.pop_back()
     }
-    pub fn complete(self) -> (LinkedList<GameObject>,UUID) {
+    pub fn complete(self) -> (LinkedList<GameObject>, UUID) {
         match self {
             World {
                 prev: _,
@@ -62,12 +65,11 @@ impl World {
                 to_destroy: destroy,
                 id_counter,
             } => {
-                let obj = 
-                rest.into_iter()
+                let obj = rest.into_iter()
                     .filter(|c| !destroy.contains(&c.id))
                     .chain(spawned.into_iter())
                     .collect::<LinkedList<_>>();
-                    (obj , id_counter)
+                (obj, id_counter)
             }
         }
     }
@@ -77,8 +79,12 @@ impl World {
     pub fn spawn(&mut self, comp: GameObject) -> () {
         self.spawned.push_front(comp);
     }
+    pub fn spawn_comp<T: Component>(&mut self, comp: T) -> () {
+        let go = self.new_gameobject().add(Box::new(comp));
+        self.spawn(go);
+    }
     pub fn destroy(&mut self, comp: &GameObject) {
-            self.to_destroy.insert(comp.id);
+        self.to_destroy.insert(comp.id);
     }
     pub fn collisions(&self, bb: BoundingBox) -> LinkedList<&GameObject> {
         self.prev
@@ -115,7 +121,6 @@ pub struct GameObject {
 }
 
 impl GameObject {
-
     fn add(mut self, comp: Box<Component + 'static>) -> GameObject {
         self.components.push_front(comp);
         self
